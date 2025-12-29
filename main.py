@@ -16,10 +16,16 @@ st.markdown("""
     [data-testid="stDataFrame"] thead th:nth-child(1) { display: none; }
 
     /* Line items column */
+    [data-testid="stDataFrame"] table {
+        table-layout: auto !important;
+        width: 100%;
+    }
     [data-testid="stDataFrame"] tbody th {
-        min-width: 280px !important;
+        min-width: 0 !important;
         max-width: none !important;
-        white-space: pre-wrap !important;
+        width: 1% !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
         text-align: left !important;
         font-weight: normal;
     }
@@ -40,6 +46,35 @@ st.markdown("""
     /* Optional: Add some left padding to the right column for balance */
     div[data-testid="column"]:nth-child(2) {
         padding-left: 20px;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        align-items: stretch;
+    }
+    .metric-card {
+        text-align: center;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: 100%;
+    }
+    .metric-label {
+        margin: 0;
+        font-size: 1.1em;
+        font-weight: bold;
+    }
+    .metric-value {
+        margin: 5px 0 0 0;
+        font-size: 1.6em;
+        font-weight: bold;
+        color: #1e3d59;
+    }
+    .metric-delta {
+        font-size: 0.9em;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -236,28 +271,22 @@ with right_col:
 
     # Custom metric HTML template
     def custom_metric(label_text, label_color, value, delta=None):
-        delta_html = f"<br><span style='font-size:0.9em; color:{'#43a047' if delta and '+' in delta else '#d81b60'}'>{delta}</span>" if delta else ""
-        return f"""
-        <div style='text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            <p style='margin: 0; font-size: 1.1em; font-weight: bold; color: {label_color};'>{label_text}</p>
-            <p style='margin: 5px 0 0 0; font-size: 1.6em; font-weight: bold; color: #1e3d59;'>{value}</p>
-            {delta_html}
-        </div>
-        """
+        delta_html = f"<br><span class='metric-delta' style='color:{'#43a047' if delta and '+' in delta else '#d81b60'}'>{delta}</span>" if delta else ""
+        return (
+            "<div class='metric-card'>"
+            f"<p class='metric-label' style='color: {label_color};'>{label_text}</p>"
+            f"<p class='metric-value'>{value}</p>"
+            f"{delta_html}"
+            "</div>"
+        )
 
     # Layout with equal columns
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.markdown(custom_metric("Revenue", "#1565c0", fmt_currency(final_rev), f"{rev_change*100:+.1f}%"), unsafe_allow_html=True)
-
-    with col2:
-        st.markdown(custom_metric("Net Profit", "#43a047", fmt_currency(final_col[-2]),f"{((final_col[-2]/org_col[-2])-1)*100:+.1f}%"), unsafe_allow_html=True)
-
-    with col3:
-        st.markdown(custom_metric("Net Profit Margin", "#43a047", fmt_pct(final_col[-1]),f"{((final_col[-1]/org_col[-1])-1)*100:+.1f}%"), unsafe_allow_html=True)
-
-    with col4:
-        st.markdown(custom_metric("Corporate Tax", "#d81b60", fmt_currency(final_col[-4]),f"{((final_col[-4]/org_col[-4])-1)*100:+.1f}%"), unsafe_allow_html=True)
+    metrics_html = "".join([
+        custom_metric("Revenue", "#1565c0", fmt_currency(final_rev), f"{rev_change*100:+.1f}%"),
+        custom_metric("Net Profit", "#43a047", fmt_currency(final_col[-2]), f"{((final_col[-2]/org_col[-2])-1)*100:+.1f}%"),
+        custom_metric("Net Profit Margin", "#43a047", fmt_pct(final_col[-1]), f"{((final_col[-1]/org_col[-1])-1)*100:+.1f}%"),
+        custom_metric("Corporate Tax", "#d81b60", fmt_currency(final_col[-4]), f"{((final_col[-4]/org_col[-4])-1)*100:+.1f}%"),
+    ])
+    st.markdown(f"<div class='metrics-grid'>{metrics_html}</div>", unsafe_allow_html=True)
 
 st.info("💡 **Tip:** Use sidebar controls to dynamically update table, chart, and metrics in real-time.")
